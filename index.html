@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة بيانات البلوكات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* أخضر */
+            --secondary-color: #2196F3; /* أزرق */
+            --accent-color: #FFC107; /* أصفر */
+            --bg-light: #e8f5e9; /* خلفية خضراء فاتحة جداً */
+            --text-dark: #333;
+            --text-light: #f8f8f8;
+            --border-radius-lg: 12px;
+            --border-radius-md: 8px;
+            --box-shadow-light: 0 4px 15px rgba(0,0,0,0.1);
+            --box-shadow-medium: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .login-container, .main-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            padding: 30px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--box-shadow-medium);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInSlideUp 0.8s forwards ease-out;
+        }
+
+        @keyframes fadeInSlideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 50%;
+            transform: translateX(50%);
+            width: 80px;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 1em;
+            color: #555;
+        }
+
+        input[type="password"], input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-md);
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+            direction: rtl; /* لضمان صحة اتجاه الكتابة */
+        }
+
+        input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px 20px;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--text-light);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-login { background-color: var(--primary-color); }
+        .btn-login:hover { background-color: #43a047; }
+
+        .section {
+            background: #fdfdfd;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--box-shadow-light);
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .section h3 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .triple-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .triple-grid > div { /* للحقول داخل الـ triple-grid */
+            margin-bottom: 0;
+        }
+        .triple-grid button {
+            width: auto;
+            align-self: flex-end;
+            padding: 10px 15px;
+            font-size: 0.9em;
+            margin-top: 0; /* Override default button margin */
+        }
+        @media (max-width: 480px) {
+            .triple-grid {
+                grid-template-columns: 1fr; /* عمود واحد على شاشات الموبايل الصغيرة */
+            }
+            .triple-grid button {
+                width: 100%; /* زر الإضافة يأخذ العرض كاملا */
+            }
+        }
+
+        .btn-add { background-color: var(--primary-color); }
+        .btn-add:hover { background-color: #43a047; }
+        
+        .btn-generate { background-color: var(--secondary-color); margin-top: 25px; }
+        .btn-generate:hover { background-color: #1976d2; }
+        
+        .btn-clear { background-color: #e74c3c; margin-top: 10px; }
+        .btn-clear:hover { background-color: #c0392b; }
+
+        #sizeListTable {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: var(--border-radius-md);
+            overflow: hidden; /* For rounded corners on table */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        #sizeListTable th, #sizeListTable td {
+            border: 1px solid #eee;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        #sizeListTable th {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        #sizeListTable td button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #e74c3c;
+            padding: 0;
+            margin: 0;
+            width: auto;
+        }
+        #sizeListTable td button:hover {
+            color: #c0392b;
+            transform: scale(1.1);
+        }
+
+        #output {
+            margin-top: 30px;
+            background: #fff3e0;
+            padding: 20px;
+            border: 2px dashed var(--accent-color);
+            border-radius: var(--border-radius-md);
+            white-space: pre-line;
+            text-align: right;
+            font-size: 1.1em;
+            line-height: 1.6;
+            direction: rtl;
+        }
+        #output strong {
+            color: #d84315;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .copy-button-output {
+            background-color: #4CAF50 !important;
+            margin-top: 15px;
+        }
+        .copy-button-output:hover {
+            background-color: #43a047 !important;
+        }
+
+        /* Hide main content until login */
+        .main-container { display: none; }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .login-container, .main-container {
+                width: 95%;
+                padding: 20px;
+            }
+            h2 { font-size: 1.6em; }
+            .section h3 { font-size: 1.2em; }
+            .grid, .triple-grid {
+                grid-template-columns: 1fr;
+            }
+            .triple-grid button {
+                width: 100%;
+            }
+            input, select, button {
+                font-size: 0.95em;
+                padding: 10px;
+            }
+            #sizeListTable th, #sizeListTable td {
+                padding: 10px 5px;
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container" id="loginScreen">
+    <h2>تسجيل الدخول</h2>
+    <div class="input-group">
+        <label for="passwordInput">الرقم السري:</label>
+        <input type="password" id="passwordInput" placeholder="أدخل الرقم السري">
+    </div>
+    <button class="btn-login" onclick="attemptLogin()">دخول</button>
+    <p id="loginMessage" style="color:red; margin-top:15px;"></p>
+</div>
+
+<div class="main-container" id="appContent">
+    <h2>نظام إدارة بيانات البلوكات - آمال فؤاد</h2>
+
+    <div class="section">
+        <h3>1. أطوال البلوكات (Block Lengths)</h3>
+        <div class="grid">
+            <div>
+                <label for="totalLength">طول الفرشة الكلي:</label>
+                <input type="number" id="totalLength" step="0.01" placeholder="مثلاً: 13.50">
+            </div>
+            <div>
+                <label for="block2Length">طول البلوك 2 (الصغير):</label>
+                <input type="number" id="block2Length" step="0.01" placeholder="مثلاً: 2.92">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>2. إضافة مقاسات البلوك (Sizes)</h3>
+        <div class="triple-grid">
+            <div>
+                <label for="sizeIn">المقاس:</label>
+                <input type="text" id="sizeIn" list="sList" placeholder="اختر أو اكتب">
+                <datalist id="sList">
+                    <option value="19"></option><option value="20"></option><option value="21"></option>
+                    <option value="22"></option><option value="23"></option><option value="24"></option>
+                    <option value="25"></option><option value="26"></option><option value="27"></option>
+                    <option value="28"></option><option value="29"></option><option value="30"></option>
+                    <option value="32"></option><option value="34"></option><option value="36"></option>
+                    <option value="38"></option><option value="40"></option><option value="42"></option>
+                    <option value="44"></option><option value="46"></option><option value="48"></option>
+                    <option value="50"></option><option value="2"></option><option value="3"></option>
+                    <option value="4"></option><option value="5"></option><option value="6"></option>
+                    <option value="7"></option><option value="8"></option><option value="SS"></option>
+                    <option value="S"></option><option value="L"></option><option value="XL"></option>
+                    <option value="XXL"></option><option value="M"></option>
+                </datalist>
+            </div>
+            <div>
+                <label for="insIn">الانسيم:</label>
+                <input type="text" id="insIn" list="iList" placeholder="اختر أو اكتب">
+                <datalist id="iList">
+                    <option value="30"></option><option value="32"></option><option value="34"></option>
+                    <option value="36"></option><option value="38"></option><option value="40"></option>
+                    <option value="42"></option><option value="44"></option><option value="46"></option>
+                    <option value="48"></option><option value="50"></option>
+                </datalist>
+            </div>
+            <div>
+                <label for="qtyIn">العدد:</label>
+                <input type="number" id="qtyIn" value="1" min="1">
+            </div>
+            <button class="btn-add" onclick="addSizeToList()">إضافة +</button>
+        </div>
+
+        <table id="sizeListTable">
+            <thead>
+                <tr>
+                    <th>المقاس</th>
+                    <th>الانسيم</th>
+                    <th>العدد</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody id="sizesBody"></tbody>
+        </table>
+    </div>
+
+    <button class="btn-generate" onclick="generateFinalReport()">توليد البيانات النهائية</button>
+    <button class="btn-clear" onclick="location.reload()">تفريغ البيانات بالكامل</button>
+
+    <div id="output" style="display:none;">
+        <strong style="color:#d32f2f">البيانات جاهزة للنسخ (إلى آمال فؤاد):</strong>
+        <div id="finalText" style="padding:10px; font-weight:bold;"></div>
+        <button class="btn-generate copy-button-output" onclick="copyText()">نسخ النص بالكامل</button>
+    </div>
+</div>
+
+<script>
+    const CORRECT_PASSWORD = '2026';
+    let addedSizes = [];
+
+    function attemptLogin() {
+        const enteredPassword = document.getElementById('passwordInput').value;
+        const loginMessage = document.getElementById('loginMessage');
+        if (enteredPassword === CORRECT_PASSWORD) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('appContent').style.opacity = '0'; // Reset for animation
+            document.getElementById('appContent').style.transform = 'translateY(20px)'; // Reset for animation
+            // Trigger animation for main content
+            setTimeout(() => {
+                document.getElementById('appContent').style.animation = 'fadeInSlideUp 0.8s forwards ease-out';
+            }, 50); // Small delay to ensure display:block takes effect before animation
+        } else {
+            loginMessage.innerText = 'الرقم السري غير صحيح. يرجى المحاولة مرة أخرى.';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+        }
+    }
+
+    // Allow pressing Enter in password field to login
+    document.getElementById('passwordInput').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            attemptLogin();
+        }
+    });
+
+    function addSizeToList() {
+        const size = document.getElementById('sizeIn').value.trim();
+        const inseam = document.getElementById('insIn').value.trim();
+        const qty = parseInt(document.getElementById('qtyIn').value, 10);
+
+        if(!size || !inseam || isNaN(qty) || qty < 1) {
+            alert("يرجى ملء المقاس، الانسيم، والعدد بشكل صحيح.");
+            return;
+        }
+
+        addedSizes.push({ size, inseam, qty });
+        updateTable();
+        
+        document.getElementById('sizeIn').value = '';
+        document.getElementById('insIn').value = ''; // Clear inseam field too
+        document.getElementById('qtyIn').value = '1'; // Reset quantity
+        document.getElementById('sizeIn').focus();
+    }
+
+    function updateTable() {
+        const tbody = document.getElementById('sizesBody');
+        tbody.innerHTML = '';
+        addedSizes.forEach((item, index) => {
+            tbody.innerHTML += `<tr>
+                <td>${item.size}</td>
+                <td>${item.inseam}</td>
+                <td>${item.qty}</td>
+                <td><button onclick="removeSize(${index})" aria-label="حذف المقاس">❌</button></td>
+            </tr>`;
+        });
+    }
+
+    function removeSize(index) {
+        addedSizes.splice(index, 1);
+        updateTable();
+    }
+
+    function generateFinalReport() {
+        const total = parseFloat(document.getElementById('totalLength').value);
+        const b2 = parseFloat(document.getElementById('block2Length').value);
+
+        if (isNaN(total) || isNaN(b2) || total <= 0 || b2 <= 0) {
+            alert("يرجى إدخال أطوال الفرشة والبلوك 2 بشكل صحيح.");
+            return;
+        }
+
+        const b1 = (total - b2).toFixed(2);
+
+        if(addedSizes.length === 0) {
+            alert("يرجى إضافة مقاس واحد على الأقل قبل توليد البيانات.");
+            return;
+        }
+
+        let sizesText = addedSizes.map(s => `${s.size}x${s.inseam}/${s.qty},`).join('\n');
+
+        const report = `المرسل: مدخل البيانات
+إلى: أمال فؤاد
+--------------------------------
+بيانات البلوكات:
+${b2.toFixed(2)}  block2
+${b1}  block1
+--------------------------------
+مقاسات البلوك:
+${sizesText}
+--------------------------------`;
+
+        document.getElementById('finalText').innerText = report;
+        document.getElementById('output').style.display = 'block';
+    }
+
+    function copyText() {
+        const text = document.getElementById('finalText').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("تم نسخ البيانات بنجاح!");
+        }).catch(err => {
+            console.error('فشل في نسخ النص: ', err);
+            alert("فشل في نسخ البيانات. يرجى المحاولة يدوياً.");
+        });
+    }
+
+    // Set focus to password input on load
+    window.onload = function() {
+        document.getElementById('passwordInput').focus();
+    };
+</script>
+
+</body>
+</html>
